@@ -318,7 +318,11 @@ module testbench;
   // Find the test vector files and populate the PC to function label converter
   ////////////////////////////////////////////////////////////////////////////////
   logic [P.XLEN-1:0] testadr;
-  always_comb begin
+
+  //VCS ignores the dynamic types while processing the implicit sensitivity lists of always @*, always_comb, and always_latch
+  //procedural blocks. VCS supports the dynamic types in the implicit sensitivity list of always @* block as specified in the Section 9.2 of the IEEE Standard SystemVerilog Specification 1800-2012.
+  //To support memory load and dump task verbosity: flag : -diag sys_task_mem
+  always @(*) begin
   	begin_signature_addr = ProgramAddrLabelArray["begin_signature"];
  	end_signature_addr = ProgramAddrLabelArray["sig_end_canary"];
   	signature_size = end_signature_addr - begin_signature_addr;
@@ -419,6 +423,8 @@ module testbench;
         else $display("FAIL: %d test programs had errors", totalerrors);
 `ifdef VERILATOR // this macro is defined when verilator is used
         $finish; // Simulator Verilator needs $finish to terminate simulation.
+`elsif SIM_VCS // this macro is defined when vcs is used
+        $finish; // Simulator VCS needs $finish to terminate simulation.
 `else
          $stop; // if this is changed to $finish for Questa, wally-batch.do does not go to the next step to run coverage, and wally.do terminates without allowing GUI debug
 `endif
@@ -881,7 +887,10 @@ end
     if (errors) $display("%s failed with %d errors. :(", TestName, errors);
     else $display("%s succeeded.  Brilliant!!!", TestName);
   endtask
-  
+ 
+`ifdef PMP_COVERAGE
+test_pmp_coverage #(P) pmp_inst(clk);
+`endif
   /* verilator lint_on WIDTHTRUNC */
   /* verilator lint_on WIDTHEXPAND */
 
